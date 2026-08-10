@@ -1,41 +1,28 @@
-const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers")
-const { expect } = require("chai")
-const { ethers } = require("hardhat")
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
-const { deployTokenFixture } = require("./helpers/TokenFixtures")
+module.exports = buildModule("TokenModule", (m) => {
+  const TOTAL_SUPPLY = 1000000
+  const DEPLOYER = m.getAccount(0)
 
-const tokens = (n) => {
-  return ethers.parseUnits(n.toString(), 18)
-}
+  // Native token — Phoenix Pod Token (PHXP)
+  const PHXP = m.contract(
+    "Token",
+    ["Phoenix Pod Token", "PHXP", TOTAL_SUPPLY],
+    { from: DEPLOYER, id: "PHXP" }
+  )
 
-describe("Token", () => {
-  const NAME = "Dapp University"
-  const SYMBOL = "DAPP"
-  const DECIMALS = 18
-  const TOTAL_SUPPLY = tokens("1000000")
+  // Mock counter-assets for the order book
+  const mUSDC = m.contract(
+    "Token",
+    ["Mock USDC", "mUSDC", TOTAL_SUPPLY],
+    { from: DEPLOYER, id: "mUSDC" }
+  )
 
-  it("has correct name", async () => {
-    const { token } = await loadFixture(deployTokenFixture)
-    expect(await token.name()).to.equal(NAME)
-  })
+  const mLINK = m.contract(
+    "Token",
+    ["Mock LINK", "mLINK", TOTAL_SUPPLY],
+    { from: DEPLOYER, id: "mLINK" }
+  )
 
-  it("has correct symbol", async () => {
-    const { token } = await loadFixture(deployTokenFixture)
-    expect(await token.symbol()).to.equal(SYMBOL)
-  })
-
-  it("has correct decimals", async () => {
-    const { token } = await loadFixture(deployTokenFixture)
-    expect(await token.decimals()).to.equal(DECIMALS)
-  })
-
-  it("has correct total supply", async () => {
-    const { token } = await loadFixture(deployTokenFixture)
-    expect(await token.totalSupply()).to.equal(TOTAL_SUPPLY)
-  })
-
-  it("assigns total supply to deployer", async () => {
-    const { token, deployer } = await loadFixture(deployTokenFixture)
-    expect(await token.balanceOf(deployer.address)).to.equal(TOTAL_SUPPLY)
-  })
-})
+  return { PHXP, mUSDC, mLINK }
+});
