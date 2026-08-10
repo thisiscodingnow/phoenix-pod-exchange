@@ -71,7 +71,7 @@ describe("Token", () => {
         const { token, deployer, receiver } = await loadFixture(deployTokenFixture)
 
         const INVALID_AMOUNT = tokens(100000000)
-        const ERROR = "Token: Insufficent Funds"
+        const ERROR = "Token: Insufficient Funds"
 
         await expect(token.connect(deployer).transfer(receiver.address, INVALID_AMOUNT))
           .to.be.revertedWith(ERROR)
@@ -153,7 +153,7 @@ describe("Token", () => {
         const { token, deployer, receiver, exchange } = await loadFixture(transferFromTokenFixture)
 
         const INVALID_AMOUNT = tokens(100000000)
-        const ERROR = "Token: Insufficent Funds"
+        const ERROR = "Token: Insufficient Funds"
 
         await (await token.connect(deployer).approve(exchange.address, INVALID_AMOUNT)).wait()
         await expect(token.connect(exchange).transferFrom(deployer.address, receiver.address, INVALID_AMOUNT))

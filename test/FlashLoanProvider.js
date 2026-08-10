@@ -47,7 +47,7 @@ describe("FlashLoanProvider", () => {
 
         await expect(
           exchange.connect(accounts.user1).flashLoan(await token1.getAddress(), tokens(100), "0x")
-        ).to.be.revertedWith("FlashLoanProvider: Insufficent funds to loan")
+        ).to.be.revertedWith("FlashLoanProvider: Insufficient funds to loan")
       })
     })
   })

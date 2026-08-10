@@ -30,7 +30,7 @@ contract Token {
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
-        require(balanceOf[msg.sender] >= _value, "Token: Insufficent Funds");
+        require(balanceOf[msg.sender] >= _value, "Token: Insufficient Funds");
 
         _transfer(msg.sender, _to, _value);
 
@@ -63,7 +63,7 @@ contract Token {
         address _to,
         uint256 _value
     ) public returns(bool success) {
-        require(_value <= balanceOf[_from], "Token: Insufficent Funds");
+        require(_value <= balanceOf[_from], "Token: Insufficient Funds");
         require(
             _value <= allowance[_from][msg.sender],
             "Token: Insufficient allowance"

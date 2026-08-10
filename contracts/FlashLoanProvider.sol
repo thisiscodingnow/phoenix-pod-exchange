@@ -28,7 +28,7 @@ abstract contract FlashLoanProvider {
         // Must have something to lend
         require(
             tokenBalanceBefore > 0,
-            "FlashLoanProvider: Insufficent funds to loan"
+            "FlashLoanProvider: Insufficient funds to loan"
         );
 
         // Send the funds to the borrower (msg.sender)
