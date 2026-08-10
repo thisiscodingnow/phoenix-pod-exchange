@@ -11,6 +11,8 @@ contract Exchange {
 
     // The order book: id => Order
     mapping(uint256 => Order) public orders;
+    // Which orders have been cancelled: id => cancelled?
+    mapping(uint256 => bool) public isOrderCancelled;
 
     // Total tokens belonging to a user: token => user => balance
     mapping(address => mapping(address => uint256))
@@ -33,6 +35,15 @@ contract Exchange {
         uint256 balance
     );
     event OrderCreated(
+        uint256 id,
+        address user,
+        address tokenGet,
+        uint256 amountGet,
+        address tokenGive,
+        uint256 amountGive,
+        uint256 timestamp
+    );
+    event OrderCancelled(
         uint256 id,
         address user,
         address tokenGet,
@@ -161,6 +172,34 @@ contract Exchange {
             _amountGet,
             _tokenGive,
             _amountGive,
+            block.timestamp
+        );
+    }
+
+    function cancelOrder(uint256 _id) public {
+        // Fetch the order from storage (a pointer to state, not a copy)
+        Order storage order = orders[_id];
+
+        // Order must exist (id 0 sentinel: a missing order has id == 0)
+        require(order.id == _id, "Exchange: Order does not exist");
+
+        // Only the order's owner may cancel it
+        require(order.user == msg.sender, "Exchange: Not the owner");
+
+        // Mark it cancelled (soft delete — order stays on-chain for history)
+        isOrderCancelled[_id] = true;
+
+        // Release the tokens this order had locked
+        userActiveTokenBalance[order.tokenGive][order.user] -= order.amountGive;
+
+        // Emit event
+        emit OrderCancelled(
+            order.id,
+            msg.sender,
+            order.tokenGet,
+            order.amountGet,
+            order.tokenGive,
+            order.amountGive,
             block.timestamp
         );
     }

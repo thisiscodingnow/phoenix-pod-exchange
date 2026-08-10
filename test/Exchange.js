@@ -134,4 +134,55 @@ describe("Exchange", () => {
       })
     })
   })
+
+  describe("Cancelling Orders", () => {
+    describe("Success", () => {
+      it("updates cancelled orders", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+
+        const transaction = await exchange.connect(accounts.user1).cancelOrder(1)
+        await transaction.wait()
+
+        expect(await exchange.isOrderCancelled(1)).to.equal(true)
+      })
+
+      it("emits an OrderCancelled event", async () => {
+        const { tokens: { token0, token1 }, exchange, accounts } = await loadFixture(orderExchangeFixture)
+
+        const transaction = await exchange.connect(accounts.user1).cancelOrder(1)
+        await transaction.wait()
+
+        const ORDER_ID = 1
+        const AMOUNT = tokens(1)
+        const { timestamp } = await ethers.provider.getBlock()
+
+        await expect(transaction).to.emit(exchange, "OrderCancelled")
+          .withArgs(
+            ORDER_ID,
+            accounts.user1.address,
+            await token1.getAddress(),
+            AMOUNT,
+            await token0.getAddress(),
+            AMOUNT,
+            timestamp
+          )
+      })
+    })
+
+    describe("Failure", () => {
+      it("rejects invalid order ids", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+        await expect(
+          exchange.connect(accounts.user1).cancelOrder(99999)
+        ).to.be.revertedWith("Exchange: Order does not exist")
+      })
+
+      it("rejects unauthorized cancelations", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+        await expect(
+          exchange.connect(accounts.user2).cancelOrder(1)
+        ).to.be.revertedWith("Exchange: Not the owner")
+      })
+    })
+  })
 })
