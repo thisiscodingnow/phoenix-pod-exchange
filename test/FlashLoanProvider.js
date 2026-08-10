@@ -2,7 +2,7 @@ const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helper
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 
-const { depositExchangeFixture } = require("./helpers/ExchangeFixtures")
+const { deployExchangeFixture, depositExchangeFixture } = require("./helpers/ExchangeFixtures")
 
 const tokens = (n) => {
   return ethers.parseUnits(n.toString(), 18)
@@ -23,12 +23,32 @@ describe("FlashLoanProvider", () => {
   describe("Calling flashLoan from FlashLoanUser", () => {
     const AMOUNT = tokens(100)
 
-    it("emits a FlashLoan event", async () => {
-      const { tokens: { token0 }, exchange, accounts, flashLoanUser } = await loadFixture(flashLoanFixture)
+    describe("Success", () => {
+      it("emits a FlashLoanReceived event", async () => {
+        const { tokens: { token0 }, accounts, flashLoanUser } = await loadFixture(flashLoanFixture)
 
-      await expect(
-        flashLoanUser.connect(accounts.user1).getFlashLoan(await token0.getAddress(), AMOUNT)
-      ).to.emit(exchange, "FlashLoan")
+        await expect(
+          flashLoanUser.connect(accounts.user1).getFlashLoan(await token0.getAddress(), AMOUNT)
+        ).to.emit(flashLoanUser, "FlashLoanReceived")
+      })
+
+      it("emits a FlashLoan event", async () => {
+        const { tokens: { token0 }, exchange, accounts, flashLoanUser } = await loadFixture(flashLoanFixture)
+
+        await expect(
+          flashLoanUser.connect(accounts.user1).getFlashLoan(await token0.getAddress(), AMOUNT)
+        ).to.emit(exchange, "FlashLoan")
+      })
+    })
+
+    describe("Failure", () => {
+      it("rejects on insufficient funds", async () => {
+        const { tokens: { token1 }, exchange, accounts } = await loadFixture(deployExchangeFixture)
+
+        await expect(
+          exchange.connect(accounts.user1).flashLoan(await token1.getAddress(), tokens(100), "0x")
+        ).to.be.revertedWith("FlashLoanProvider: Insufficent funds to loan")
+      })
     })
   })
 })

@@ -3,9 +3,17 @@ pragma solidity 0.8.28;
 
 import {Token} from "./Token.sol";
 
-// Abstract: we never deploy this on its own — the Exchange inherits it
-// to gain flash-loan capability. (Part 1: sends the loan + emits only;
-// the repayment/callback logic lands in Lesson 15.)
+// The borrower must implement this so the provider can call back into it.
+interface IFlashLoanReceiver {
+    function receiveFlashLoan(
+        address token,
+        uint256 amount,
+        bytes memory data
+    ) external;
+}
+
+// Abstract: never deployed on its own — the Exchange inherits it to gain
+// flash-loan capability.
 abstract contract FlashLoanProvider {
     event FlashLoan(address token, uint256 amount, uint256 timestamp);
 
@@ -14,14 +22,33 @@ abstract contract FlashLoanProvider {
         uint256 _amount,
         bytes memory _data
     ) public {
-        // Send the money to the borrower (msg.sender)
-        Token(_token).transfer(msg.sender, _amount);
+        // Snapshot the balance before lending
+        uint256 tokenBalanceBefore = Token(_token).balanceOf(address(this));
 
-        // TODO (Lesson 15): call back into the borrower to use the funds
+        // Must have something to lend
+        require(
+            tokenBalanceBefore > 0,
+            "FlashLoanProvider: Insufficent funds to loan"
+        );
 
-        // TODO (Lesson 15): require the loan (+ fee) was paid back, else revert
+        // Send the funds to the borrower (msg.sender)
+        require(
+            Token(_token).transfer(msg.sender, _amount),
+            "FlashLoanProvider: Transfer failed"
+        );
 
-        // Emit an event
+        // Hand control to the borrower to use the funds, then repay
+        IFlashLoanReceiver(msg.sender).receiveFlashLoan(_token, _amount, _data);
+
+        // Snapshot the balance after the callback returns
+        uint256 tokenBalanceAfter = Token(_token).balanceOf(address(this));
+
+        // The loan must be fully repaid — else revert the whole transaction
+        require(
+            tokenBalanceAfter >= tokenBalanceBefore,
+            "FlashLoanProvider: Funds not received"
+        );
+
         emit FlashLoan(_token, _amount, block.timestamp);
     }
 }
