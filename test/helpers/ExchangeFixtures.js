@@ -48,7 +48,25 @@ async function depositExchangeFixture() {
   return { tokens, exchange, accounts, transaction }
 }
 
+async function orderExchangeFixture() {
+  const { tokens, exchange, accounts } = await depositExchangeFixture()
+
+  const AMOUNT = ethers.parseUnits("1", 18)
+
+  // user1 (who deposited token0/PHXP) offers 1 token0 to get 1 token1/mDAI
+  const transaction = await exchange.connect(accounts.user1).makeOrder(
+    await tokens.token1.getAddress(),
+    AMOUNT,
+    await tokens.token0.getAddress(),
+    AMOUNT
+  )
+  await transaction.wait()
+
+  return { tokens, exchange, accounts, transaction }
+}
+
 module.exports = {
     deployExchangeFixture,
-    depositExchangeFixture
+    depositExchangeFixture,
+    orderExchangeFixture
 }

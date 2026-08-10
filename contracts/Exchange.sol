@@ -7,10 +7,17 @@ contract Exchange {
     // State variables
     address public feeAccount;
     uint256 public feePercent;
+    uint256 public orderCount;
+
+    // The order book: id => Order
+    mapping(uint256 => Order) public orders;
 
     // Total tokens belonging to a user: token => user => balance
     mapping(address => mapping(address => uint256))
         private userTotalTokenBalance;
+    // Tokens locked in a user's open orders: token => user => balance
+    mapping(address => mapping(address => uint256))
+        private userActiveTokenBalance;
 
     // Events
     event TokensDeposited(
@@ -25,6 +32,25 @@ contract Exchange {
         uint256 amount,
         uint256 balance
     );
+    event OrderCreated(
+        uint256 id,
+        address user,
+        address tokenGet,
+        uint256 amountGet,
+        address tokenGive,
+        uint256 amountGive,
+        uint256 timestamp
+    );
+
+    struct Order {
+        uint256 id;         // Unique identifier for the order
+        address user;       // User who made the order
+        address tokenGet;   // Token they want to receive
+        uint256 amountGet;  // Amount they want to receive
+        address tokenGive;  // Token they are giving
+        uint256 amountGive; // Amount they are giving
+        uint256 timestamp;  // When the order was created
+    }
 
     constructor(address _feeAccount, uint256 _feePercent) {
         feeAccount = _feeAccount;
@@ -54,9 +80,11 @@ contract Exchange {
     }
 
     function withdrawToken(address _token, uint256 _amount) public {
-        // Check the user has enough deposited (also gives a readable revert reason)
+        // Withdrawable = total deposited minus what's locked in open orders
         require(
-            totalBalanceOf(_token, msg.sender) >= _amount,
+            totalBalanceOf(_token, msg.sender) -
+                activeBalanceOf(_token, msg.sender) >=
+                _amount,
             "Exchange: Insufficient balance"
         );
 
@@ -83,5 +111,57 @@ contract Exchange {
         address _user
     ) public view returns (uint256) {
         return userTotalTokenBalance[_token][_user];
+    }
+
+    function activeBalanceOf(
+        address _token,
+        address _user
+    ) public view returns (uint256) {
+        return userActiveTokenBalance[_token][_user];
+    }
+
+    // ------------------------
+    // MAKE & CANCEL ORDERS
+
+    function makeOrder(
+        address _tokenGet,
+        uint256 _amountGet,
+        address _tokenGive,
+        uint256 _amountGive
+    ) public {
+        // Must have enough free (unlocked) balance to back the order
+        require(
+            totalBalanceOf(_tokenGive, msg.sender) >=
+                activeBalanceOf(_tokenGive, msg.sender) + _amountGive,
+            "Exchange: Insufficient balance"
+        );
+
+        // New order id (first order is 1 — id 0 stays a sentinel for "no order")
+        orderCount++;
+
+        // Store the order in the book
+        orders[orderCount] = Order(
+            orderCount,
+            msg.sender,
+            _tokenGet,
+            _amountGet,
+            _tokenGive,
+            _amountGive,
+            block.timestamp
+        );
+
+        // Lock the offered tokens against this order
+        userActiveTokenBalance[_tokenGive][msg.sender] += _amountGive;
+
+        // Emit event
+        emit OrderCreated(
+            orderCount,
+            msg.sender,
+            _tokenGet,
+            _amountGet,
+            _tokenGive,
+            _amountGive,
+            block.timestamp
+        );
     }
 }
