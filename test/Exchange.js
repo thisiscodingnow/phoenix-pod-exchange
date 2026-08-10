@@ -185,4 +185,77 @@ describe("Exchange", () => {
       })
     })
   })
+
+  describe("Filling Orders", () => {
+    describe("Success", () => {
+      it("executes the trade and charges fees", async () => {
+        const { tokens: { token0, token1 }, exchange, accounts } = await loadFixture(orderExchangeFixture)
+
+        await (await exchange.connect(accounts.user2).fillOrder(1)).wait()
+
+        // tokenGive (token0): maker gives 1, filler receives 1, no fee on this side
+        expect(await exchange.totalBalanceOf(await token0.getAddress(), accounts.user1.address)).to.equal(tokens(99))
+        expect(await exchange.totalBalanceOf(await token0.getAddress(), accounts.user2.address)).to.equal(tokens(1))
+        expect(await exchange.totalBalanceOf(await token0.getAddress(), accounts.feeAccount.address)).to.equal(tokens(0))
+        // tokenGet (token1): maker receives 1, filler pays 1 + 0.1 fee, feeAccount gets 0.1
+        expect(await exchange.totalBalanceOf(await token1.getAddress(), accounts.user1.address)).to.equal(tokens(1))
+        expect(await exchange.totalBalanceOf(await token1.getAddress(), accounts.user2.address)).to.equal(tokens(98.9))
+        expect(await exchange.totalBalanceOf(await token1.getAddress(), accounts.feeAccount.address)).to.equal(tokens(0.1))
+      })
+
+      it("updates filled orders", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+
+        await (await exchange.connect(accounts.user2).fillOrder(1)).wait()
+
+        expect(await exchange.isOrderFilled(1)).to.equal(true)
+      })
+
+      it("emits an OrderFilled event", async () => {
+        const { tokens: { token0, token1 }, exchange, accounts } = await loadFixture(orderExchangeFixture)
+
+        const transaction = await exchange.connect(accounts.user2).fillOrder(1)
+        await transaction.wait()
+
+        const { timestamp } = await ethers.provider.getBlock()
+
+        await expect(transaction).to.emit(exchange, "OrderFilled")
+          .withArgs(
+            1,
+            accounts.user2.address,
+            await token1.getAddress(),
+            tokens(1),
+            await token0.getAddress(),
+            tokens(1),
+            accounts.user1.address,
+            timestamp
+          )
+      })
+    })
+
+    describe("Failure", () => {
+      it("rejects invalid order ids", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+        await expect(
+          exchange.connect(accounts.user2).fillOrder(99999)
+        ).to.be.revertedWith("Exchange: Order does not exist")
+      })
+
+      it("rejects already filled orders", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+        await (await exchange.connect(accounts.user2).fillOrder(1)).wait()
+        await expect(
+          exchange.connect(accounts.user2).fillOrder(1)
+        ).to.be.revertedWith("Exchange: Order has already been filled")
+      })
+
+      it("rejects cancelled orders", async () => {
+        const { exchange, accounts } = await loadFixture(orderExchangeFixture)
+        await (await exchange.connect(accounts.user1).cancelOrder(1)).wait()
+        await expect(
+          exchange.connect(accounts.user2).fillOrder(1)
+        ).to.be.revertedWith("Exchange: Order has been canceled")
+      })
+    })
+  })
 })
