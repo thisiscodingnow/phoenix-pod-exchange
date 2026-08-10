@@ -10,8 +10,8 @@ const tokens = (n) => {
 
 describe("Token", () => {
   describe("Deployment", () => {
-    const NAME = "Dapp University"
-    const SYMBOL = "DAPP"
+    const NAME = "Phoenix Pod Token"
+    const SYMBOL = "PHXP"
     const DECIMALS = 18
     const TOTAL_SUPPLY = tokens("1000000")
 
