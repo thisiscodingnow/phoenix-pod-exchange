@@ -1,5 +1,8 @@
 # Phoenix Pod Exchange
 
+[![CI](https://github.com/thisiscodingnow/phoenix-pod-exchange/actions/workflows/test.yml/badge.svg)](https://github.com/thisiscodingnow/phoenix-pod-exchange/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A full-stack **decentralized exchange (DEX)** on Ethereum — an ERC-20 token, an on-chain order-book exchange with deposits, withdrawals, and order matching, flash loans, and a complete React/Next.js trading interface.
 
 Smart contracts in Solidity + Hardhat; a Next.js 15 / Redux / ethers.js front end that connects a wallet, reads the chain, and lets you place, cancel, and fill orders against a live order book.
