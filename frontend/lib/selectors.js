@@ -43,3 +43,18 @@ export const selectExchangeBalances = createSelector(
     })
   }
 )
+
+export const selectTokenAndBalance = createSelector(
+  selectTokens,
+  selectTokenBalances,
+  (state, address) => address,
+  (tokens, balances, address) => {
+    if (address === null) return { token: null, balances: { wallet: 0, exchange: 0 } }
+
+    const token = tokens.find(token => token.address === address)
+    const wallet = balances[address] ? balances[address].wallet : 0 
+    const exchange = balances[address] ? balances[address].exchange : 0
+
+    return { token, balances: { wallet, exchange } }
+  }
+)

@@ -5,6 +5,7 @@ import { ethers } from "ethers"
 
 // Components
 import Balances from "@/app/components/Balances"
+import Transfer from "@/app/components/Transfer"
 
 // Redux
 import { useAppDispatch, useAppSelector } from "@/lib/hooks"
@@ -86,11 +87,13 @@ export default function Home() {
       <section className="deposit">
         <h2>Deposit</h2>
         
+        <Transfer type="deposit" tokens={tokens} />
       </section>
 
       <section className="withdraw">
         <h2>Withdraw</h2>
-
+        
+        <Transfer type="withdraw" tokens={tokens} />
       </section>
     </div>
   );
