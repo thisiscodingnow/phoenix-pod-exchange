@@ -1,6 +1,22 @@
 import { ethers } from "ethers"
 
+// Custom hooks
+import { useProvider } from "@/app/hooks/useProvider"
+import { useExchange } from "@/app/hooks/useExchange"
+
 function Orders({ market, orders, type }) {
+  // Hooks
+  const { provider } = useProvider()
+  const { exchange } = useExchange()
+
+  async function cancelHandler(order) {
+    // Get signer
+    const signer = await provider.getSigner()
+    
+    // Submit transaction
+    const transaction = await exchange.connect(signer).cancelOrder(order.id)
+    await transaction.wait()    
+  }
 
   return (
     <div className="table-wrapper">
@@ -17,6 +33,7 @@ function Orders({ market, orders, type }) {
             {orders.map((order, index) => (
               <tr
                 key={index}
+                onClick={type === "open" ? () => cancelHandler(order) : undefined}
                 role={type === "open" ? "link" : undefined}
                 tabIndex={type === "open" ? 0 : -1}
                 aria-label={type === "open" ? "Fill order" : undefined}
